@@ -2,10 +2,22 @@
 const cache = new Map();
 const CACHE_TTL_MS = 30_000;
 
+const IPV4_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+
+// RFC1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+function isRfc1918(ip) {
+  const [a, b] = ip.split('.').map(Number);
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action !== 'search') return false;
 
   const term = message.term;
+  if (typeof term !== 'string' || (IPV4_RE.test(term) && !isRfc1918(term))) {
+    sendResponse({ error: 'Lookups are limited to private (RFC1918) IP addresses.' });
+    return false;
+  }
   const cached = cache.get(term);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     sendResponse({ results: cached.results });

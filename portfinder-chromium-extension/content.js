@@ -7,13 +7,28 @@ const TERM_PATTERN = new RegExp(
   'g'
 );
 
-const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SELECT', 'NOSCRIPT', 'SVG', 'MATH']);
+const SKIP_SELECTOR = 'script, style, textarea, input, select, noscript, svg, math, .pf-term, #pf-tooltip';
+
+const IPV4_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+
+// RFC1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+function isRfc1918(ip) {
+  const [a, b] = ip.split('.').map(Number);
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
+
+// IPs are only actionable when private; MAC formats are always actionable.
+function shouldWrap(term) {
+  return IPV4_RE.test(term) ? isRfc1918(term) : true;
+}
 
 // --- Tooltip ---
 
 let tooltip = null;
 let hoverTimeout = null;
 let activeTerm = null;
+let lastX = 0;
+let lastY = 0;
 
 function ensureTooltip() {
   if (tooltip) return tooltip;
@@ -25,12 +40,24 @@ function ensureTooltip() {
 
 function positionTooltip(x, y) {
   const t = ensureTooltip();
+  lastX = x;
+  lastY = y;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  const margin = 8;
   const tw = t.offsetWidth || 320;
   const th = t.offsetHeight || 120;
-  const left = x + 14 + tw > vw ? x - tw - 8 : x + 14;
-  const top  = y + 14 + th > vh ? y - th - 8 : y + 14;
+
+  // Prefer below-right of the cursor; flip to the other side when it
+  // would overflow, then clamp so the box always stays in the viewport.
+  let left = x + 14;
+  if (left + tw > vw - margin) left = x - tw - 14;
+  left = Math.max(margin, Math.min(left, vw - tw - margin));
+
+  let top = y + 14;
+  if (top + th > vh - margin) top = y - th - 14;
+  top = Math.max(margin, Math.min(top, vh - th - margin));
+
   t.style.left = left + 'px';
   t.style.top  = top  + 'px';
 }
@@ -47,19 +74,17 @@ function showTooltip(term, x, y) {
     if (activeTerm !== term) return;
     if (!response) {
       renderError(t, 'Extension error — could not contact background worker.');
-      return;
-    }
-    if (response.error) {
+    } else if (response.error) {
       renderError(t, response.error);
-      return;
-    }
-    if (!response.results.length) {
+    } else if (!response.results.length) {
       t.className = 'pf-empty';
       t.textContent = `No results for ${term}`;
-      return;
+    } else {
+      t.className = '';
+      t.innerHTML = renderResults(response.results);
     }
-    t.className = '';
-    t.innerHTML = renderResults(response.results);
+    // The box just changed size — re-fit it to the viewport.
+    positionTooltip(lastX, lastY);
   });
 }
 
@@ -112,45 +137,83 @@ function escHtml(s) {
 
 // --- DOM scanning ---
 
-let mutating = false;
+// Nodes created by this extension. The MutationObserver and scanner skip
+// them, so our own DOM edits can never feed back into another scan cycle.
+const createdNodes = new WeakSet();
 
 function processTextNode(node) {
+  if (!node.isConnected || createdNodes.has(node)) return;
+
   const text = node.nodeValue;
   TERM_PATTERN.lastIndex = 0;
-  if (!TERM_PATTERN.test(text)) return;
+  const matches = [];
+  let m;
+  while ((m = TERM_PATTERN.exec(text)) !== null) {
+    if (shouldWrap(m[0])) matches.push({ index: m.index, term: m[0] });
+  }
+  if (!matches.length) return;
 
-  TERM_PATTERN.lastIndex = 0;
   const frag = document.createDocumentFragment();
   let last = 0;
-  let m;
 
-  while ((m = TERM_PATTERN.exec(text)) !== null) {
-    if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+  for (const { index, term } of matches) {
+    if (index > last) frag.appendChild(document.createTextNode(text.slice(last, index)));
     const span = document.createElement('span');
     span.className = 'pf-term';
-    span.dataset.pfTerm = m[0];
-    span.textContent = m[0];
+    span.dataset.pfTerm = term;
+    span.textContent = term;
     frag.appendChild(span);
-    last = m.index + m[0].length;
+    last = index + term.length;
   }
 
   if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+  for (const child of frag.childNodes) createdNodes.add(child);
   node.parentNode.replaceChild(frag, node);
 }
 
-function walkNode(root) {
+function collectTextNodes(root, out) {
   if (root.nodeType === Node.TEXT_NODE) {
-    processTextNode(root);
+    if (!root.parentElement?.closest(SKIP_SELECTOR)) out.push(root);
     return;
   }
   if (root.nodeType !== Node.ELEMENT_NODE) return;
-  if (SKIP_TAGS.has(root.tagName)) return;
-  if (root.id === 'pf-tooltip') return;
-  if (root.classList?.contains('pf-term')) return;
+  if (root.closest?.(SKIP_SELECTOR)) return;
 
-  for (const child of Array.from(root.childNodes)) {
-    walkNode(child);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) =>
+      n.parentElement?.closest(SKIP_SELECTOR) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  let n;
+  while ((n = walker.nextNode())) out.push(n);
+}
+
+// Text nodes awaiting processing, worked through in idle-time slices so a
+// large or rapidly mutating page never blocks rendering.
+const pendingTextNodes = [];
+let scanScheduled = false;
+
+const scheduleIdle =
+  typeof requestIdleCallback === 'function'
+    ? requestIdleCallback
+    : (cb) => setTimeout(() => cb({ timeRemaining: () => 8 }), 0);
+
+function queueScan(root) {
+  collectTextNodes(root, pendingTextNodes);
+  if (pendingTextNodes.length && !scanScheduled) {
+    scanScheduled = true;
+    scheduleIdle(processQueue);
   }
+}
+
+function processQueue(deadline) {
+  while (pendingTextNodes.length) {
+    if (deadline.timeRemaining() <= 1) {
+      scheduleIdle(processQueue);
+      return;
+    }
+    processTextNode(pendingTextNodes.shift());
+  }
+  scanScheduled = false;
 }
 
 // --- Event listeners ---
@@ -187,18 +250,16 @@ document.addEventListener('keydown', hideTooltip, true);
 
 // --- Initial scan + mutation observer ---
 
-if (document.body) walkNode(document.body);
+if (document.body) queueScan(document.body);
 
 const observer = new MutationObserver((mutations) => {
-  if (mutating) return;
-  mutating = true;
   for (const mut of mutations) {
     for (const node of mut.addedNodes) {
+      if (createdNodes.has(node)) continue;
       if (node.id === 'pf-tooltip') continue;
-      walkNode(node);
+      queueScan(node);
     }
   }
-  mutating = false;
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
