@@ -1,6 +1,6 @@
 # PortFinder Hover
 
-A Chromium browser extension that lets you hover over any IP or MAC address on a web page to instantly see where that device is connected on the network — switch, port, VLANs, and hostname — powered by your [PortFinder]("https://github.com/ryanaosborne/SwitchNetconf-PortFinder") backend. Works in Edge, Chrome, and other Chromium-based browsers.
+A Chromium browser extension that lets you hover over any IP or MAC address on a web page to instantly see where that device is connected on the network — switch, port, VLANs, and hostname — powered by your [PortFinder](https://github.com/ryanaosborne/SwitchNetconf-PortFinder) backend. Works in Edge, Chrome, and other Chromium-based browsers.
 
 ## How it works
 
