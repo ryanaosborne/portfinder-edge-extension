@@ -1,6 +1,6 @@
 # PortFinder Hover
 
-A Microsoft Edge extension that lets you hover over any IP or MAC address on a web page to instantly see where that device is connected on the network — switch, port, VLANs, and hostname — powered by your PortFinder backend.
+A Chromium browser extension that lets you hover over any IP or MAC address on a web page to instantly see where that device is connected on the network — switch, port, VLANs, and hostname — powered by your PortFinder backend. Works in Edge, Chrome, and other Chromium-based browsers.
 
 ## How it works
 
@@ -34,13 +34,13 @@ The extension is unpacked (not from the store), so it loads in developer mode. I
 
 1. Open Edge and go to `edge://extensions`.
 2. Enable **Developer mode** (toggle in the left sidebar).
-3. Click **Load unpacked** and select the `edge-extension/` folder from this repository.
+3. Click **Load unpacked** and select the `chromium-extension/` folder from this repository.
 
 ### Chrome
 
 1. Open Chrome and go to `chrome://extensions`.
 2. Enable **Developer mode** (toggle in the top-right corner).
-3. Click **Load unpacked** and select the `edge-extension/` folder from this repository.
+3. Click **Load unpacked** and select the `chromium-extension/` folder from this repository.
 
 Other Chromium-based browsers (Brave, Opera, Vivaldi) load it the same way from their extensions page.
 
@@ -48,7 +48,7 @@ Other Chromium-based browsers (Brave, Opera, Vivaldi) load it the same way from 
 
 Because the extension is loaded unpacked, the browser does not auto-update it — it keeps running whatever code was in the folder when it was last loaded. After pulling new code:
 
-1. Get the latest files (e.g. `git pull`, or replace the `edge-extension/` folder with the new version in the same location).
+1. Get the latest files (e.g. `git pull`, or replace the `chromium-extension/` folder with the new version in the same location).
 2. Go to your browser's extensions page (`edge://extensions` or `chrome://extensions`).
 3. Find **PortFinder Hover** and click its **Reload** button (circular arrow icon). This restarts the service worker and picks up all changed files.
 4. Refresh any tabs where you want to use the extension — content scripts on already-open pages keep running the old code until the page is reloaded.
@@ -92,7 +92,7 @@ Open any page containing an IP or MAC address (a monitoring dashboard, a ticket,
 ## Project layout
 
 ```
-edge-extension/
+chromium-extension/
 ├── manifest.json    # MV3 manifest (permissions, scripts, options page)
 ├── content.js       # Page scanning, term highlighting, tooltip rendering
 ├── tooltip.css      # Tooltip and highlight styles
