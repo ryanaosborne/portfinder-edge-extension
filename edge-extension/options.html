@@ -42,7 +42,7 @@
       margin-bottom: 6px;
     }
 
-    input[type="url"], input[type="text"] {
+    input[type="url"], input[type="text"], input[type="password"] {
       width: 100%;
       padding: 9px 12px;
       font-size: 14px;
@@ -54,9 +54,30 @@
       outline: none;
       transition: border-color 0.15s;
     }
-    input[type="url"]:focus, input[type="text"]:focus {
+    input[type="url"]:focus, input[type="text"]:focus, input[type="password"]:focus {
       border-color: #4a9eff;
     }
+
+    .field {
+      margin-top: 20px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input-row input {
+      flex: 1;
+    }
+
+    #btn-toggle-token {
+      padding: 9px 12px;
+      background: #313244;
+      color: #cdd6f4;
+      border: 1px solid #45475a;
+      flex-shrink: 0;
+    }
+    #btn-toggle-token:hover { background: #3d3f56; }
 
     .hint {
       font-size: 12px;
@@ -113,6 +134,15 @@
       <label for="url">PortFinder API base URL</label>
       <input id="url" type="text" placeholder="http://10.0.0.1:5000" autocomplete="off" spellcheck="false" />
       <p class="hint">Do not include a trailing slash or path. Example: <code>http://portfinder.local:5000</code></p>
+
+      <div class="field">
+        <label for="token">API token</label>
+        <div class="input-row">
+          <input id="token" type="password" placeholder="pfk_..." autocomplete="off" spellcheck="false" />
+          <button type="button" id="btn-toggle-token" aria-label="Show or hide token">Show</button>
+        </div>
+        <p class="hint">Sent as <code>Authorization: Bearer &lt;token&gt;</code> on API calls. Leave blank if your server does not require one.</p>
+      </div>
 
       <div class="btn-row">
         <button type="submit">Save</button>

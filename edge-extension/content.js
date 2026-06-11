@@ -79,9 +79,11 @@ function renderResults(results) {
       ['Switch',      r.node_id || 'Switch'],
       ['MAC',         r.mac_address],
       ['IP',          r.ip_address],
+      ['Hostname',    r.hostname],
       ['Interface',   r.interface],
       ['Description', r.interface_description],
-      ['VLAN',        r.vlan != null ? (r.vlan_name ? `${r.vlan} (${r.vlan_name})` : String(r.vlan)) : null],
+      ['Data VLAN',   formatVlan(r.access_vlan, r.access_vlan_name)],
+      ['Voice VLAN',  formatVlan(r.voice_vlan, r.voice_vlan_name)],
     ]
       .filter(([, v]) => v != null && v !== '')
       .map(([k, v]) => `<tr><th>${escHtml(k)}</th><td>${escHtml(String(v))}</td></tr>`)
@@ -93,6 +95,11 @@ function renderResults(results) {
       ${i < results.length - 1 ? '<hr class="pf-divider">' : ''}
     `;
   }).join('');
+}
+
+function formatVlan(id, name) {
+  if (id == null) return null;
+  return name ? `${id} (${name})` : String(id);
 }
 
 function escHtml(s) {
