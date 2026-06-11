@@ -28,13 +28,32 @@ Rows with no data are omitted from the tooltip. Results are cached for 30 second
 
 ## Installation
 
-The extension is unpacked (not from the store), so it loads in developer mode:
+The extension is unpacked (not from the store), so it loads in developer mode. It works identically in Edge and Chrome — it's built on the shared Chromium extension platform (Manifest V3, `chrome.*` APIs).
+
+### Edge
 
 1. Open Edge and go to `edge://extensions`.
 2. Enable **Developer mode** (toggle in the left sidebar).
 3. Click **Load unpacked** and select the `edge-extension/` folder from this repository.
 
-The same steps work in Chrome via `chrome://extensions`.
+### Chrome
+
+1. Open Chrome and go to `chrome://extensions`.
+2. Enable **Developer mode** (toggle in the top-right corner).
+3. Click **Load unpacked** and select the `edge-extension/` folder from this repository.
+
+Other Chromium-based browsers (Brave, Opera, Vivaldi) load it the same way from their extensions page.
+
+## Updating an existing installation
+
+Because the extension is loaded unpacked, the browser does not auto-update it — it keeps running whatever code was in the folder when it was last loaded. After pulling new code:
+
+1. Get the latest files (e.g. `git pull`, or replace the `edge-extension/` folder with the new version in the same location).
+2. Go to your browser's extensions page (`edge://extensions` or `chrome://extensions`).
+3. Find **PortFinder Hover** and click its **Reload** button (circular arrow icon). This restarts the service worker and picks up all changed files.
+4. Refresh any tabs where you want to use the extension — content scripts on already-open pages keep running the old code until the page is reloaded.
+
+Your saved settings (API base URL and token) are kept across reloads; they are only lost if you **Remove** the extension instead of reloading it. If you moved the folder to a different path, the browser can't find it — remove the extension and use **Load unpacked** again with the new location, then re-enter your settings.
 
 ## Setup
 
@@ -48,7 +67,7 @@ The extension needs to know where your PortFinder backend lives, and (unless you
 
 ### 2. Configure the extension
 
-1. Go to `edge://extensions`, find **PortFinder Hover**, and click **Details → Extension options** (or right-click the extension icon → **Options**).
+1. Go to your browser's extensions page (`edge://extensions` or `chrome://extensions`), find **PortFinder Hover**, and click **Details → Extension options** (or right-click the extension icon → **Options**).
 2. **PortFinder API base URL** — enter the scheme, host, and port of your backend with no trailing slash or path, e.g. `http://portfinder.local:5000`.
 3. **API token** — paste the `pfk_...` token. Pasting it with a leading `Bearer ` prefix is fine; the prefix is stripped automatically. Leave this blank only if your server authenticates requests another way.
 4. Click **Test connection** to verify the URL and token, then **Save**.
