@@ -1,0 +1,96 @@
+/* Highlighted terms on the page */
+.pf-term {
+  text-decoration: underline dotted #4a9eff;
+  cursor: crosshair;
+  border-radius: 2px;
+}
+.pf-term:hover {
+  background-color: rgba(74, 158, 255, 0.15);
+}
+a .pf-term {
+  cursor: pointer;
+}
+
+/* Tooltip container */
+#pf-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  display: none;
+  min-width: 220px;
+  max-width: 360px;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-family: 'Consolas', 'Cascadia Code', 'Monaco', 'Menlo', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Result table */
+.pf-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.pf-table th {
+  text-align: left;
+  color: #a6adc8;
+  font-weight: 500;
+  padding: 1px 10px 1px 0;
+  white-space: nowrap;
+}
+.pf-table td {
+  color: #cdd6f4;
+  padding: 1px 0;
+  word-break: break-all;
+  white-space: normal;
+}
+
+/* Divider between multiple results */
+.pf-divider {
+  border: none;
+  border-top: 1px solid #313244;
+  margin: 7px 0;
+}
+
+/* Loading state */
+#pf-tooltip.pf-loading {
+  color: #a6adc8;
+}
+.pf-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #45475a;
+  border-top-color: #4a9eff;
+  border-radius: 50%;
+  animation: pf-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+@keyframes pf-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty / error states */
+#pf-tooltip.pf-empty {
+  color: #a6adc8;
+  font-style: italic;
+}
+#pf-tooltip.pf-error-state {
+  color: #f38ba8;
+}
+.pf-error-icon {
+  margin-right: 4px;
+}
+
+code {
+  font-family: inherit;
+  background: #313244;
+  border-radius: 3px;
+  padding: 0 3px;
+}
